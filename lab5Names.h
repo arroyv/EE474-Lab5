@@ -123,6 +123,8 @@
 // Base 0x400F.E000
 // Offset 0x108
 #define RCGC2_PA (*((unsigned long *)0x400FE108))
+// Offset 0x100
+#define RCGC0_PA (*((unsigned long *)0x400FE100))
 
 // Register 22: GPIO Port Control (GPIOPCTL), offset 0x52C
 // The GPIOPCTL register is used in conjunction with the GPIOAFSEL register and selects the specific
