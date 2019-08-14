@@ -36,7 +36,7 @@
 #include <stdint.h>
 // #include "inc/tm4c123gh6pm.h"
 #include "tm4c123gh6pm.h"
-#include <lab4Names.h>
+#include <ChentyleLab5.h>
 #include "SSD2119.h"
 
 // 4 bit Color 	 red,green,blue to 16 bit color
