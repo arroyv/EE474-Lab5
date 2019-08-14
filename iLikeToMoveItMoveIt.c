@@ -1612,13 +1612,13 @@ void PMW_Init(void) {
     GPIOF_AFSEL     |= 0x0F; // Enable alternate function
     GPIOF_PCTL      |= 0x5555; // Assign PWM signal to port F0-F3
     RCC             |= 0x07; // Configure to use PWM /64 divider (default)
-    PWM0_CTL        |= 0x00; // Configure PWM generator to countdown mode with immediate updates to the parameters
-    PWM0_GENA       |= 0x008C;
-    PWM0_GENB       |= 0x080C;
-    PWM0_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
-    PWM0_CMPA       |= 0x130A; // Set pulse width of PWM0 for a 2.5% duty cycle 
-    PWM0_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
-    PWM0_CTL        |= 0x01; // Start timers in PWM generator 0
+    PWM1_CTL        |= 0x00; // Configure PWM generator to countdown mode with immediate updates to the parameters
+    PWM1_GENA       |= 0x008C;
+    PWM1_GENB       |= 0x080C;
+    PWM1_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
+    PWM1_CMPA       |= 0x130A; // Set pulse width of PWM0 for a 2.5% duty cycle 
+    PWM1_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
+    PWM1_CTL        |= 0x01; // Start timers in PWM generator 0
     PWM_ENABLE      |= 0X03; // Enable PWM outputs
 }
 
