@@ -1528,9 +1528,9 @@ int stopPress(void);
 int main() {
   Touch_Init();
   LCD_Init();
-  PMW_Init();
   Timer0_Init(16000000);
   ADC1_Init();
+  PMW_Init();
   
   // set background
   LCD_ColorFill(Color4[3]);
