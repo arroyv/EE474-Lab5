@@ -1446,32 +1446,6 @@ unsigned long Touch_ReadZ2(void)
     return result;
 }
 
-// coord Touch_GetCoords(void){
-//    coord result;
-//    short sumX = 0;
-//    short sumY = 0;
-//    short i = 0;
-//    xVals[filterCounter] = Touch_ReadXVal();
-//    yVals[filterCounter] = Touch_ReadYVal();
-//
-//    if (numVals < NUM_VALS_TO_AVG)
-//        numVals++;
-//
-//    filterCounter++;
-//    if (filterCounter >= NUM_VALS_TO_AVG)
-//        filterCounter = 0;
-//
-//    for (i = 0; i < numVals; i++){
-//        sumX += xVals[i];
-//        sumY += yVals[i];
-//    }
-//
-//    result.x = sumX / numVals;
-//    result.y = sumY / numVals;
-//
-//    return result;
-//}
-
 //! Doesn't work because there's no disable/enable functionality
 void Touch_BeginWaitForTouch(void)
 {
@@ -1541,11 +1515,10 @@ enum colors{red, yellow, green};
 enum colors LEDcolor = red; // default LEDcolor is red
 int pPress;
 int sPress;
-int t1;
-int t2;
 
 void Timer0_Init(volatile unsigned long);
 void ADC1_Init(void);
+void PWM_Init(void);
 void ADC1_Handler(void);
 void printFloat(float value);
 enum colors systemSwitch(enum colors color);
@@ -1555,6 +1528,7 @@ int stopPress(void);
 int main() {
   Touch_Init();
   LCD_Init();
+  PMW_Init();
   Timer0_Init(16000000);
   ADC1_Init();
   
@@ -1562,15 +1536,13 @@ int main() {
   LCD_ColorFill(Color4[3]);
   
   // set up push buttons
+  invisible = 0;
   LCD_DrawFilledRect(20, 150, 70, 70, Color4[5]);
-  invisible = 1;
   LCD_SetCursor(25, 180);
-  invisible = 0;
-  LCD_PrintString("Pedestrian");    
+  LCD_PrintString("Pedestrian"); 
+
   LCD_DrawFilledRect(230, 150, 70, 70, Color4[5]);
-  invisible = 1;
   LCD_SetCursor(255, 180);
-  invisible = 0;
   LCD_PrintString("Stop"); 
   
   // Set text cursor to top left of screen
@@ -1591,26 +1563,15 @@ int main() {
     if(pPress || sPress) {
       buttonCount++;
       if((600 < buttonCount) && (buttonCount < 1500)) {
-        if((LEDcolor == red) && (pPress == 1)) {
-          LEDcolor = yellow;
+        if(pPress == 1) {
+          // something
         }
         if(sPress == 1) {
-          // turn on red light immediately
-          LCD_DrawFilledCircle(160, 60, 20, Color4[12]);
-          LCD_DrawFilledCircle(160, 120, 20, Color4[8]);
-          LCD_DrawFilledCircle(160, 180, 20, Color4[8]);
-          LEDcolor = green;
-          counter  = 1;
+          // something else
         }
       }
     } else {
       buttonCount = 0;
-    }
-    
-    // rotate stoplight to next color
-    if(counter % 6 == 0) {
-      LEDcolor = systemSwitch(LEDcolor);
-      counter++;
     }
   }
   return 1;
@@ -1641,6 +1602,24 @@ void ADC1_Init(void) {
     ADC_1_IM        |= 0x8;        // ADC interupt mask
     ADC_1_ACTSS     |= (1u << 3);  // Sample Sequencer 3 is enabled.
     ADC_1_PSSI      |= 1u << 3;    // Begin sampling on Sample Sequencer 3, if the sequencer is enabled in the ADCACTSS register.
+}
+
+// This functin configures the PWM module
+// more info can be found on page 1239 of the datasheet
+void PMW_Init(void) {
+    RCGC0_PA        |= 0x20; // Enable the PWM clock
+    RCGC2_PA        |= 0x20; // Enable the clock to GPIO F
+    GPIOF_AFSEL     |= 0x0F; // Enable alternate function
+    GPIOF_PCTL      |= 0x5555; // Assign PWM signal to port F0-F3
+    RCC             |= 0x07; // Configure to use PWM /64 divider (default)
+    PWM0_CTL        |= 0x00; // Configure PWM generator to countdown mode with immediate updates to the parameters
+    PWM0_GENA       |= 0x008C;
+    PWM0_GENB       |= 0x080C;
+    PWM0_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
+    PWM0_CMPA       |= 0x130A; // Set pulse width of PWM0 for a 2.5% duty cycle 
+    PWM0_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
+    PWM0_CTL        |= 0x01; // Start timers in PWM generator 0
+    PWM_ENABLE      |= 0X03; // Enable PWM outputs
 }
 
 // Interupt Service Routine (ISR) for the ADC1 module
