@@ -830,6 +830,8 @@
 // The blocks produce the PWM signals, which can be either two independent PWM signals (from the same counter), or a paired set of PWM signals with dead-band delays added.
 #define PWM0_CTL (*((unsigned long *)0x40028040))
 #define PWM1_CTL (*((unsigned long *)0x40029080))
+#define PWM2_CTL (*((unsigned long *)0x400280C0))
+#define PWM3_CTL (*((unsigned long *)0x40028100))
 
 // Register 44: PWM0 Generator A Control (PWM0GENA), offset 0x060
 // This register controls the generation of the pwmA signal based on the load and zero output puleses from the counter,
@@ -837,12 +839,16 @@
 // These events provide great flexibility in the positioning and duty cycle of the resulting PWM signal.
 #define PWM0_GENA (*((unsigned long *)0x40028060))
 #define PWM1_GENA (*((unsigned long *)0x400290A0))
+#define PWM2_GENA (*((unsigned long *)0x400280E0))
+#define PWM3_GENA (*((unsigned long *)0x40028120))
 
 // Register 48: PWM0 Generator B Control (PWM0GENB), offset 0x064
 // These registers control the generation of the pwmB signal based on the load and zero output pulses from the counter, as well as the compare A and compare B pulses from the comparators (PWM0GENB controls the PWM generator 0 block, and so on). 
 // When the counter is running in Count-Down mode, only four of these events occur; when running in Count-Up/Down mode, all six occur. These events provide great flexibility in the positioning and duty cycle of the resulting PWM signal.
 #define PWM0_GENB (*((unsigned long *)0x40028064))
 #define PWM1_GENB (*((unsigned long *)0x400290A4))
+#define PWM2_GENB (*((unsigned long *)0x400280E4))
+#define PWM3_GENB (*((unsigned long *)0x40028124))
 
 // Register 28: PWM0 Load (PWM0LOAD), offset 0x050
 // These registers contain the load value for the PWM counter (PWM0LOAD controls the PWM generator 0 block, and so on). Based on the counter mode configured by the MODE bit in the PWMnCTL register, 
@@ -850,18 +856,24 @@
 // (via the PWMnGENA/PWMnGENB register) or drive an interruptor ADC trigger (via the PWMnINTEN register).
 #define PWM0_LOAD (*((unsigned long *)0x40028050))
 #define PWM1_LOAD (*((unsigned long *)0x40029090))
+#define PWM2_LOAD (*((unsigned long *)0x400280D0))
+#define PWM3_LOAD (*((unsigned long *)0x40028110))
 
 // Register 36: PWM0 Compare A (PWM0CMPA), offset 0x058
 // These registers contain a value to be compared against the counter (PWM0CMPA controls the PWM generator 0 block, and so on). When this value matches the counter, a pulse is output which can be configured to drive the generation of the pwmA and pwmB signals (via the PWMnGENA and PWMnGENB registers) 
 // or drive an interrupt or ADC trigger (via the PWMnINTEN register). If the value of this register is greater than the PWMnLOAD register (see page 1278), then no pulse is ever output.
 #define PWM0_CMPA (*((unsigned long *)0x40028058))
 #define PWM1_CMPA (*((unsigned long *)0x40029098))
+#define PWM2_CMPA (*((unsigned long *)0x400280D8))
+#define PWM3_CMPA (*((unsigned long *)0x40028118))
 
 // Register 40: PWM0 Compare B (PWM0CMPB), offset 0x05C
 // These registers contain a value to be compared against the counter (PWM0CMPB controls the PWM generator 0 block, and so on). When this value matches the counter, a pulse is output which can be configured to drive the generation of the pwmA and pwmB signals (via the PWMnGENA and PWMnGENB registers) 
 // or drive an interrupt or ADC trigger (via the PWMnINTEN register). If the value of this register is greater than the PWMnLOAD register, no pulse is ever output.
 #define PWM0_CMPB (*((unsigned long *)0x4002805C))
 #define PWM1_CMPB (*((unsigned long *)0x4002909C))
+#define PWM2_CMPB (*((unsigned long *)0x400280DC))
+#define PWM3_CMPB (*((unsigned long *)0x4002811C))
 
 // Register 3: PWM Output Enable (PWMENABLE), offset 0x008
 // This register provides a master control of which generated pwmA' and pwmB' signals are output to the MnPWMn pins. By disabling a PWM output, the generation process can continue (for example, when the time bases are synchronized) without driving PWM signals to the pins. When bits in this register are set, 

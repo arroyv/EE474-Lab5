@@ -1526,24 +1526,24 @@ int pedestrianPress(void);
 int stopPress(void);
 
 int main() {
+  Timer0_Init(16000000);
   Touch_Init();
   LCD_Init();
-  Timer0_Init(16000000);
   ADC1_Init();
-  PMW_Init();
+  PWM_Init();
   
   // set background
   LCD_ColorFill(Color4[3]);
   
-  // set up push buttons
+  // sets up LCD push buttons on screen
   invisible = 0;
-  LCD_DrawFilledRect(20, 150, 70, 70, Color4[5]);
+  LCD_DrawFilledRect(20, 150, 70, 70, Color4[2]);
   LCD_SetCursor(25, 180);
-  LCD_PrintString("Pedestrian"); 
+  LCD_PrintString("Left"); 
 
-  LCD_DrawFilledRect(230, 150, 70, 70, Color4[5]);
+  LCD_DrawFilledRect(230, 150, 70, 70, Color4[2]);
   LCD_SetCursor(255, 180);
-  LCD_PrintString("Stop"); 
+  LCD_PrintString("Right");  
   
   // Set text cursor to top left of screen
   LCD_SetCursor(0, 0);
@@ -1558,21 +1558,22 @@ int main() {
     LCD_SetCursor(0, 0);
     //LCD_ColorFill(Color4[0]); // clears the screen
     
-    pPress = pedestrianPress();
-    sPress = stopPress();
-    if(pPress || sPress) {
-      buttonCount++;
-      if((600 < buttonCount) && (buttonCount < 1500)) {
-        if(pPress == 1) {
-          // something
-        }
-        if(sPress == 1) {
-          // something else
-        }
-      }
-    } else {
-      buttonCount = 0;
-    }
+//    pPress = pedestrianPress();
+//    sPress = stopPress();
+//    if(pPress || sPress) {
+//      buttonCount++;
+//      if((600 < buttonCount) && (buttonCount < 1500)) {
+//        if(pPress == 1) {
+//          // something
+//        }
+//        if(sPress == 1) {
+//          // something else
+//        }
+//      }
+//    } else {
+//      buttonCount = 0;
+//    }
+    
   }
   return 1;
 }
@@ -1604,21 +1605,31 @@ void ADC1_Init(void) {
     ADC_1_PSSI      |= 1u << 3;    // Begin sampling on Sample Sequencer 3, if the sequencer is enabled in the ADCACTSS register.
 }
 
-// This functin configures the PWM module
+// This function configures the PWM module
 // more info can be found on page 1239 of the datasheet
-void PMW_Init(void) {
-    RCGC0_PA        |= 0x20; // Enable the PWM clock
+void PWM_Init(void) {
+    RCGC0_PA        |= (1u << 20); // Enable the PWM clock
     RCGC2_PA        |= 0x20; // Enable the clock to GPIO F
     GPIOF_AFSEL     |= 0x0F; // Enable alternate function
     GPIOF_PCTL      |= 0x5555; // Assign PWM signal to port F0-F3
-    RCC             |= 0x07; // Configure to use PWM /64 divider (default)
-    PWM1_CTL        |= 0x00; // Configure PWM generator to countdown mode with immediate updates to the parameters
-    PWM1_GENA       |= 0x008C;
-    PWM1_GENB       |= 0x080C;
-    PWM1_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
-    PWM1_CMPA       |= 0x130A; // Set pulse width of PWM0 for a 2.5% duty cycle 
-    PWM1_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
-    PWM1_CTL        |= 0x01; // Start timers in PWM generator 0
+    RCC             |= (0x7 << 17); // Configure to use PWM /64 divider (default)
+    
+    PWM2_CTL        &= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
+    PWM2_GENA       |= 0x008C;
+    PWM2_GENB       |= 0x080C;
+    PWM2_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
+    PWM2_CMPA       |= 0x130A; // Set pulse width of PWM0 for a 2.5% duty cycle 
+    PWM2_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
+    PWM2_CTL        |= 0x01; // Start timers in PWM generator 
+    
+    PWM3_CTL        &= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
+    PWM3_GENA       |= 0x008C;
+    PWM3_GENB       |= 0x080C;
+    PWM3_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
+    PWM3_CMPA       |= 0x130A; // Set? pulse width of PWM0 for a 2.5% duty cycle 
+    PWM3_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
+    PWM3_CTL        |= 0x01; // Start timers in PWM generator 0
+    
     PWM_ENABLE      |= 0X03; // Enable PWM outputs
 }
 
