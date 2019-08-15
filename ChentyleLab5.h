@@ -824,65 +824,228 @@
 // Important: Bitsinthisreg
 
 
-
 // Register 12: PWM0 Control (PWM0CTL), offset 0x040
-// This register configures the PWM signal generation blocks (PWM0CTL controls the PWM generator 0 block, and so on). The Register Update mode, Debug mode, Counting mode, and Block Enable mode are all controlled via these registers.
-// The blocks produce the PWM signals, which can be either two independent PWM signals (from the same counter), or a paired set of PWM signals with dead-band delays added.
-#define PWM0_CTL (*((unsigned long *)0x40028040))
-#define PWM1_CTL (*((unsigned long *)0x40029080))
-#define PWM2_CTL (*((unsigned long *)0x400280C0))
-#define PWM3_CTL (*((unsigned long *)0x40028100))
+// Register 13: PWM1 Control (PWM1CTL), offset 0x080
+// Register 14: PWM2 Control (PWM2CTL), offset 0x0C0
+// Register 15: PWM3 Control (PWM3CTL), offset 0x100
+// These registers configure the PWM signal generation blocks (PWM0CTL controls the PWM generator
+// 0 block, and so on). The Register Update mode, Debug mode, Counting mode, and Block Enable
+// mode are all controlled via these registers. The blocks produce the PWM signals, which can be
+// either two independent PWM signals (from the same counter), or a paired set of PWM signals with
+// dead-band delays added.
+
+// The PWM0 block produces the MnPWM0 and MnPWM1 outputs, the PWM1 block produces the MnPWM2
+// and MnPWM3 outputs, the PWM2 block produces the MnPWM4 and MnPWM5 outputs, and the PWM3
+// block produces the MnPWM6 and MnPWM7 outputs.
+
+// PWM module 0
+#define PWM0_0_CTL (*((unsigned long *)0x40028040))
+#define PWM0_1_CTL (*((unsigned long *)0x40028080))
+#define PWM0_2_CTL (*((unsigned long *)0x400280C0))
+#define PWM0_3_CTL (*((unsigned long *)0x40028100))
+
+// PWM module 1
+#define PWM1_0_CTL (*((unsigned long *)0x40029040))
+#define PWM1_1_CTL (*((unsigned long *)0x40029080))
+#define PWM1_2_CTL (*((unsigned long *)0x400290C0))
+#define PWM1_3_CTL (*((unsigned long *)0x40029100))
 
 // Register 44: PWM0 Generator A Control (PWM0GENA), offset 0x060
-// This register controls the generation of the pwmA signal based on the load and zero output puleses from the counter,
-// as well as the compare A and compare B pulses from the comparators (PWM0GENA controls the PWM generator 0 block, and so on). When the counter is running in Count-Down mode, only four of these events occur; when running in Count-Up/Down mode, all six occur. 
-// These events provide great flexibility in the positioning and duty cycle of the resulting PWM signal.
-#define PWM0_GENA (*((unsigned long *)0x40028060))
-#define PWM1_GENA (*((unsigned long *)0x400290A0))
-#define PWM2_GENA (*((unsigned long *)0x400280E0))
-#define PWM3_GENA (*((unsigned long *)0x40028120))
+// Register 45: PWM1 Generator A Control (PWM1GENA), offset 0x0A0
+// Register 46: PWM2 Generator A Control (PWM2GENA), offset 0x0E0
+// Register 47: PWM3 Generator A Control (PWM3GENA), offset 0x120
+// These registers control the generation of the pwmA signal based on the load and zero output pulses
+// from the counter, as well as the compare A and compare B pulses from the comparators
+// (PWM0GENA controls the PWM generator 0 block, and so on). When the counter is running in
+// Count-Down mode, only four of these events occur; when running in Count-Up/Down mode, all six
+// occur. These events provide great flexibility in the positioning and duty cycle of the resulting PWM
+// signal.
+// The PWM0GENA register controls generation of the pwm0A signal; PWM1GENA, the pwm1A
+// signal; PWM2GENA, the pwm2A signal; and PWM3GENA, the pwm3A signal.
+// If a zero or load event coincides with a compare A or compare B event, the zero or load action is
+// taken and the compare A or compare B action is ignored. If a compare A event coincides with a
+// compare B event, the compare A action is taken and the compare B action is ignored.
+// If the Generator A update mode is immediate (based on the GENAUPD field encoding in the PWMnCTL
+// register), the ACTCMPBD, ACTCMPBU, ACTCMPAD, ACTCMPAU, ACTLOAD, and ACTZERO values are
+// used immediately. If the update mode is locally synchronized, these values are used the next time
+// the counter reaches zero. If the update mode is globally synchronized, these values are used the
+// next time the counter reaches zero after a synchronous update has been requested through the
+// PWM Master Control (PWMCTL) register (see page 1244). If this register is rewritten before the
+// actual update occurs, the previous value is never used and is lost.
+
+// PWM module 0
+#define PWM0_0_GENA (*((unsigned long *)0x40028060))
+#define PWM0_1_GENA (*((unsigned long *)0x400280A0))
+#define PWM0_2_GENA (*((unsigned long *)0x400280E0))
+#define PWM0_3_GENA (*((unsigned long *)0x40028120))
+
+// PWM module 1
+#define PWM1_0_GENA (*((unsigned long *)0x40029060))
+#define PWM1_1_GENA (*((unsigned long *)0x400290A0))
+#define PWM1_2_GENA (*((unsigned long *)0x400290E0))
+#define PWM1_3_GENA (*((unsigned long *)0x40029120))
 
 // Register 48: PWM0 Generator B Control (PWM0GENB), offset 0x064
-// These registers control the generation of the pwmB signal based on the load and zero output pulses from the counter, as well as the compare A and compare B pulses from the comparators (PWM0GENB controls the PWM generator 0 block, and so on). 
-// When the counter is running in Count-Down mode, only four of these events occur; when running in Count-Up/Down mode, all six occur. These events provide great flexibility in the positioning and duty cycle of the resulting PWM signal.
-#define PWM0_GENB (*((unsigned long *)0x40028064))
-#define PWM1_GENB (*((unsigned long *)0x400290A4))
-#define PWM2_GENB (*((unsigned long *)0x400280E4))
-#define PWM3_GENB (*((unsigned long *)0x40028124))
+// Register 49: PWM1 Generator B Control (PWM1GENB), offset 0x0A4
+// Register 50: PWM2 Generator B Control (PWM2GENB), offset 0x0E4
+// Register 51: PWM3 Generator B Control (PWM3GENB), offset 0x124
+// These registers control the generation of the pwmB signal based on the load and zero output pulses
+// from the counter, as well as the compare A and compare B pulses from the comparators
+// (PWM0GENB controls the PWM generator 0 block, and so on). When the counter is running in
+// Count-Down mode, only four of these events occur; when running in Count-Up/Down mode, all six
+// occur. These events provide great flexibility in the positioning and duty cycle of the resulting PWM
+// signal.
+// The PWM0GENB register controls generation of the pwm0B signal; PWM1GENB, the pwm1B
+// signal; PWM2GENB, the pwm2B signal; and PWM3GENB, the pwm3B signal.
+// If a zero or load event coincides with a compare A or compare B event, the zero or load action is
+// taken and the compare A or compare B action is ignored. If a compare A event coincides with a
+// compare B event, the compare B action is taken and the compare A action is ignored.
+// If the Generator B update mode is immediate (based on the GENBUPD field encoding in the PWMnCTL
+// register), the ACTCMPBD, ACTCMPBU, ACTCMPAD, ACTCMPAU, ACTLOAD, and ACTZERO values are
+// used immediately. If the update mode is locally synchronized, these values are used the next time
+// the counter reaches zero. If the update mode is globally synchronized, these values are used the
+// next time the counter reaches zero after a synchronous update has been requested through the
+// PWM Master Control (PWMCTL) register (see page 1244). If this register is rewritten before the
+// actual update occurs, the previous value is never used and is lost.
+
+// PWM module 0
+#define PWM0_0_GENB (*((unsigned long *)0x40028064))
+#define PWM0_1_GENB (*((unsigned long *)0x400280A4))
+#define PWM0_2_GENB (*((unsigned long *)0x400280E4))
+#define PWM0_3_GENB (*((unsigned long *)0x40028124))
+
+
+// PWM module 1
+#define PWM1_0_GENB (*((unsigned long *)0x40029064))
+#define PWM1_1_GENB (*((unsigned long *)0x400290A4))
+#define PWM1_2_GENB (*((unsigned long *)0x400290E4))
+#define PWM1_3_GENB (*((unsigned long *)0x40029124))
 
 // Register 28: PWM0 Load (PWM0LOAD), offset 0x050
-// These registers contain the load value for the PWM counter (PWM0LOAD controls the PWM generator 0 block, and so on). Based on the counter mode configured by the MODE bit in the PWMnCTL register, 
-// this value is either loaded into the counter after it reaches zero or is the limit of up-counting after which the counter decrements back to zero. When this value matches the counter, a pulse is output which can be configured to drive the generation of the pwmA and/or pwmB signal 
-// (via the PWMnGENA/PWMnGENB register) or drive an interruptor ADC trigger (via the PWMnINTEN register).
-#define PWM0_LOAD (*((unsigned long *)0x40028050))
-#define PWM1_LOAD (*((unsigned long *)0x40029090))
-#define PWM2_LOAD (*((unsigned long *)0x400280D0))
-#define PWM3_LOAD (*((unsigned long *)0x40028110))
+// Register 29: PWM1 Load (PWM1LOAD), offset 0x090
+// Register 30: PWM2 Load (PWM2LOAD), offset 0x0D0
+// Register 31: PWM3 Load (PWM3LOAD), offset 0x110
+// These registers contain the load value for the PWM counter (PWM0LOAD controls the PWM
+// generator 0 block, and so on). Based on the counter mode configured by the MODE bit in the
+// PWMnCTL register, this value is either loaded into the counter after it reaches zero or is the limit
+// of up-counting after which the counter decrements back to zero. When this value matches the
+// counter, a pulse is output which can be configured to drive the generation of the pwmA and/or pwmB
+// signal (via the PWMnGENA/PWMnGENB register) or drive an interruptor ADC trigger (via the
+// PWMnINTEN register).
+// If the Load Value Update mode is locally synchronized (based on the LOADUPD field encoding in
+// the PWMnCTL register), the 16-bit LOAD value is used the next time the counter reaches zero. If
+// the update mode is globally synchronized, it is used the next time the counter reaches zero after a
+// synchronous update has been requested through the PWM Master Control (PWMCTL) register
+// (see page 1244). If this register is re-written before the actual update occurs, the previous value is
+// never used and is lost.
+
+// PWM module 0
+#define PWM0_0_LOAD (*((unsigned long *)0x40028050))
+#define PWM0_1_LOAD (*((unsigned long *)0x40028090))
+#define PWM0_2_LOAD (*((unsigned long *)0x400280D0))
+#define PWM0_3_LOAD (*((unsigned long *)0x40028110))
+
+// PWM module 1
+#define PWM1_0_LOAD (*((unsigned long *)0x40029050))
+#define PWM1_1_LOAD (*((unsigned long *)0x40029090))
+#define PWM1_2_LOAD (*((unsigned long *)0x400290D0))
+#define PWM1_3_LOAD (*((unsigned long *)0x40029110))
 
 // Register 36: PWM0 Compare A (PWM0CMPA), offset 0x058
-// These registers contain a value to be compared against the counter (PWM0CMPA controls the PWM generator 0 block, and so on). When this value matches the counter, a pulse is output which can be configured to drive the generation of the pwmA and pwmB signals (via the PWMnGENA and PWMnGENB registers) 
-// or drive an interrupt or ADC trigger (via the PWMnINTEN register). If the value of this register is greater than the PWMnLOAD register (see page 1278), then no pulse is ever output.
-#define PWM0_CMPA (*((unsigned long *)0x40028058))
-#define PWM1_CMPA (*((unsigned long *)0x40029098))
-#define PWM2_CMPA (*((unsigned long *)0x400280D8))
-#define PWM3_CMPA (*((unsigned long *)0x40028118))
+// Register 37: PWM1 Compare A (PWM1CMPA), offset 0x098
+// Register 38: PWM2 Compare A (PWM2CMPA), offset 0x0D8
+// Register 39: PWM3 Compare A (PWM3CMPA), offset 0x118
+// These registers contain a value to be compared against the counter (PWM0CMPA controls the
+// PWM generator 0 block, and so on). When this value matches the counter, a pulse is output which
+// can be configured to drive the generation of the pwmA and pwmB signals (via the PWMnGENA
+// and PWMnGENB registers) or drive an interrupt or ADC trigger (via the PWMnINTEN register). If
+// the value of this register is greater than the PWMnLOAD register (see page 1278), then no pulse is
+// ever output.
+// If the comparator A update mode is locally synchronized (based on the CMPAUPD bit in the PWMnCTL
+// register), the 16-bit COMPA value is used the next time the counter reaches zero. If the update mode
+// is globally synchronized, it is used the next time the counter reaches zero after a synchronous
+// update has been requested through the PWM Master Control (PWMCTL) register (see page 1244).
+// If this register is rewritten before the actual update occurs, the previous value is never used and is
+// lost.
+// PWM module 1
+#define PWM0_0_CMPA (*((unsigned long *)0x40028058))
+#define PWM0_1_CMPA (*((unsigned long *)0x40028098))
+#define PWM0_2_CMPA (*((unsigned long *)0x400280D8))
+#define PWM0_3_CMPA (*((unsigned long *)0x40028118))
+
+
+// PWM module 1
+#define PWM1_0_CMPA (*((unsigned long *)0x40029058))
+#define PWM1_1_CMPA (*((unsigned long *)0x40029098))
+#define PWM1_2_CMPA (*((unsigned long *)0x400290D8))
+#define PWM1_3_CMPA (*((unsigned long *)0x40029118))
 
 // Register 40: PWM0 Compare B (PWM0CMPB), offset 0x05C
-// These registers contain a value to be compared against the counter (PWM0CMPB controls the PWM generator 0 block, and so on). When this value matches the counter, a pulse is output which can be configured to drive the generation of the pwmA and pwmB signals (via the PWMnGENA and PWMnGENB registers) 
-// or drive an interrupt or ADC trigger (via the PWMnINTEN register). If the value of this register is greater than the PWMnLOAD register, no pulse is ever output.
-#define PWM0_CMPB (*((unsigned long *)0x4002805C))
-#define PWM1_CMPB (*((unsigned long *)0x4002909C))
-#define PWM2_CMPB (*((unsigned long *)0x400280DC))
-#define PWM3_CMPB (*((unsigned long *)0x4002811C))
+// Register 41: PWM1 Compare B (PWM1CMPB), offset 0x09C
+// Register 42: PWM2 Compare B (PWM2CMPB), offset 0x0DC
+// Register 43: PWM3 Compare B (PWM3CMPB), offset 0x11C
+// These registers contain a value to be compared against the counter (PWM0CMPB controls the
+// PWM generator 0 block, and so on). When this value matches the counter, a pulse is output which
+// can be configured to drive the generation of the pwmA and pwmB signals (via the PWMnGENA
+// and PWMnGENB registers) or drive an interrupt or ADC trigger (via the PWMnINTEN register). If
+// the value of this register is greater than the PWMnLOAD register, no pulse is ever output.
+// If the comparator B update mode is locally synchronized (based on the CMPBUPD bit in the PWMnCTL
+// register), the 16-bit COMPB value is used the next time the counter reaches zero. If the update mode
+// is globally synchronized, it is used the next time the counter reaches zero after a synchronous
+// update has been requested through the PWM Master Control (PWMCTL) register (see page 1244).
+// If this register is rewritten before the actual update occurs, the previous value is never used and is
+// lost.
+
+// PWM module 0
+#define PWM0_0_CMPB (*((unsigned long *)0x4002805C))
+#define PWM0_1_CMPB (*((unsigned long *)0x4002809C))
+#define PWM0_2_CMPB (*((unsigned long *)0x400280DC))
+#define PWM0_3_CMPB (*((unsigned long *)0x4002811C))
+
+// PWM module 1
+#define PWM1_0_CMPB (*((unsigned long *)0x4002905C))
+#define PWM1_1_CMPB (*((unsigned long *)0x4002909C))
+#define PWM1_2_CMPB (*((unsigned long *)0x400290DC))
+#define PWM1_3_CMPB (*((unsigned long *)0x4002911C))
 
 // Register 3: PWM Output Enable (PWMENABLE), offset 0x008
-// This register provides a master control of which generated pwmA' and pwmB' signals are output to the MnPWMn pins. By disabling a PWM output, the generation process can continue (for example, when the time bases are synchronized) without driving PWM signals to the pins. When bits in this register are set, 
-// the corresponding pwmA' or pwmB' signal is passed through to the output stage. When bits are clear, the pwmA' or pwmB' signal is replaced by a zero value which is also passed to the output stage. The PWMINVERT register controls the output stage, so if the corresponding bit is set in that register, 
-// the value seen on the MnPWMn signal is inverted from what is configured by the bits in this register. Updates to the bits in this register can be immediate or locally or globally synchronized to the next synchronous update as controlled by the ENUPDn fields in the PWMENUPD register.
-#define PWM_ENABLE (*((unsigned long *)0x40028008))
+// This register provides a master control of which generated pwmA' and pwmB' signals are output to
+// the MnPWMn pins. By disabling a PWM output, the generation process can continue (for example,
+// when the time bases are synchronized) without driving PWM signals to the pins. When bits in this
+// register are set, the corresponding pwmA' or pwmB' signal is passed through to the output stage.
+// When bits are clear, the pwmA' or pwmB' signal is replaced by a zero value which is also passed
+// to the output stage. The PWMINVERT register controls the output stage, so if the corresponding
+// bit is set in that register, the value seen on the MnPWMn signal is inverted from what is configured
+// by the bits in this register. Updates to the bits in this register can be immediate or locally or globally
+// synchronized
+
+#define PWM0_ENABLE (*((unsigned long *)0x40028008))
+
+#define PWM1_ENABLE (*((unsigned long *)0x40029008))
 
 
 
+// Register 70: Pulse Width Modulator Run Mode Clock Gating Control
+// (RCGCPWM), offset 0x640
+// The RCGCPWM register provides software the capability to enable and disable the PWM modules
+// in Run mode. When enabled, a module is provided a clock and accesses to module registers are
+// allowed. When disabled, the clock is disabled to save power and accesses to module registers
+// generate a bus fault. This register provides the same capability as the legacy Run Mode Clock
+// Gating Control Register n RCGCn registers specifically for the watchdog modules and has the
+// same bit polarity as the corresponding RCGCn bits.
+// !Important: This register should be used to control the clocking for the PWM modules. To support
+// legacy software, the RCGC0 register is available. A write to the PWM bit in the RCGC0
+// register also writes the R0 bit in this register. If the PWM bit is changed by writing to the
+// RCGC0 register, it can be read back correctly with a read of the RCGC0 register.
+// Software must use this register to support modules that are not present in the legacy
+// registers. If software uses this register to write to R0, the write causes proper operation,
+// but the value of that bit is not reflected in the PWM bit in the RCGC0 register. If software
+// uses both legacy and peripheral-specific register accesses, the peripheral-specific
+// registers must be accessed by read-modify-write operations that affect only peripherals
+// that are not present in the legacy registers. In this manner, both the peripheral-specific
+// and legacy registers have coherent information.
+
+#define RCGCPWM (*((unsigned long *)0x400FE640))
 
 
 

@@ -1526,10 +1526,10 @@ int pedestrianPress(void);
 int stopPress(void);
 
 int main() {
-  Timer0_Init(16000000);
-  Touch_Init();
-  LCD_Init();
-  ADC1_Init();
+//   Timer0_Init(16000000);
+//   Touch_Init();
+//   LCD_Init();
+//   ADC1_Init();
   PWM_Init();
   
   // set background
@@ -1605,32 +1605,65 @@ void ADC1_Init(void) {
     ADC_1_PSSI      |= 1u << 3;    // Begin sampling on Sample Sequencer 3, if the sequencer is enabled in the ADCACTSS register.
 }
 
+void PWM_GPIO_SETUP (void)
+{
+    RCGC2_PA        |= 0x20; // Enable the clock to GPIO F
+    GPIO_PORT_F_DEN = 0x1F;        // The digital functions for the corresponding pin are enabled PF4, PF3, PF2, PF1, PF0
+    GPIO_PORT_F_DIR = 0xF;         // set PF1, PF2, PF3 as output which is connected to the red, blue, green LED respectively. Other pins are inputs by default
+    GPIOF_AFSEL     |= 0x0F; // Enable alternate function
+    GPIOF_PCTL      |= 0x5555; // Assign PWM signal to port F0-F3
+
+// if problem refer to this set up from previous lab specifically maybe the GPIO_PORT_F_LOCK
+    // RCGCGPIO = 0x20;               // Enable and provide a clock to GPIO Port F in Run mode
+    // GPIO_PORT_F_DEN = 0x1F;        // The digital functions for the corresponding pin are enabled PF4, PF3, PF2, PF1, PF0
+    // GPIO_PORT_F_DIR = RGB;         // set PF1, PF2, PF3 as output which is connected to the red, blue, green LED respectively. Other pins are inputs by default
+    // GPIO_PORT_F_LOCK = 0x4C4F434B; // The GPIOCR register is unlocked and may be modified
+    //         // unlocked using the GPIOLOCK register Writing 0x4C4F434B to the GPIOLOCK register unlocks the GPIOCR register.
+    // GPIO_PORT_F_CR = 0xFF;         // GPIOCR register must be configured
+
+}
+
 // This function configures the PWM module
 // more info can be found on page 1239 of the datasheet
 void PWM_Init(void) {
+
     RCGC0_PA        |= (1u << 20); // Enable the PWM clock
-    RCGC2_PA        |= 0x20; // Enable the clock to GPIO F
-    GPIOF_AFSEL     |= 0x0F; // Enable alternate function
-    GPIOF_PCTL      |= 0x5555; // Assign PWM signal to port F0-F3
+    
     RCC             |= (0x7 << 17); // Configure to use PWM /64 divider (default)
+    RCC             |= (1u << 20); //Enable PWM Clock Divisor
     
-    PWM2_CTL        &= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
-    PWM2_GENA       |= 0x008C;
-    PWM2_GENB       |= 0x080C;
-    PWM2_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
-    PWM2_CMPA       |= 0x130A; // Set pulse width of PWM0 for a 2.5% duty cycle 
-    PWM2_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
-    PWM2_CTL        |= 0x01; // Start timers in PWM generator 
+    PWM1_2_CTL         = 0x0;    //&= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
+    PWM1_2_GENA       |= 0x000C;          //  Action for Counter=LOAD  This field specifies the action to be taken when the counter matches the value in the PWMnLOAD register. is 0x3 Drive pwmA High.
+    PWM1_2_GENA       |= 0x0080;          //  Action for Comparator A Down This field specifies the action to be taken when the counter matches comparator A while counting down. is Drive pwmA Low.
+
+    PWM1_2_GENB       |= 0x000C;        // Action for Counter=LOAD
+                                        // This field specifies the action to be taken when the counter matches the
+                                        // load value. Drive pwmB High.
+    PWM1_2_GENB       |= 0x0800;        // Action for Comparator B Down
+                                        // This field specifies the action to be taken when the counter matches
+                                        // comparator B while counting down. Drive pwmB Low.
+
+    PWM1_2_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
+    PWM1_2_CMPA       |= 0x130B; // Set pulse width of PWM0 for a 2.5% duty cycle 
+    PWM1_2_CMPB       |= 0x1117; // Set pulse width of PWM1 for a 12.5% duty cycle 
+    PWM1_2_CTL        |= 0x01; // Start timers in PWM generator 
     
-    PWM3_CTL        &= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
-    PWM3_GENA       |= 0x008C;
-    PWM3_GENB       |= 0x080C;
-    PWM3_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
-    PWM3_CMPA       |= 0x130A; // Set? pulse width of PWM0 for a 2.5% duty cycle 
-    PWM3_CMPB       |= 0x1116; // Set pulse width of PWM1 for a 12.5% duty cycle 
-    PWM3_CTL        |= 0x01; // Start timers in PWM generator 0
+    PWM1_3_CTL        = 0x0; //&= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
+    PWM1_3_GENA       |= 0x008C;
+    PWM1_3_GENB       |= 0x080C;
+    PWM1_3_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
     
-    PWM_ENABLE      |= 0X03; // Enable PWM outputs
+    PWM1_3_CMPA       |= 0x130B; // Set pulse width of PWM0 for a 2.5% duty cycle 
+    
+    PWM1_3_CMPB       |= 0x1117; // Set pulse width of PWM1 for a 12.5% duty cycle 
+    
+    PWM1_3_CTL        |= 0x01; // Start timers in PWM generator 0
+    
+    PWM1_ENABLE      |= 0xF0; // Enable PWM outputs 
+                              // The generated pwm3B' signal is passed to the MnPWM7 pin
+                              // The generated pwm3A' signal is passed to the MnPWM6 pin. 
+                              // The generated pwm2B' signal is passed to the MnPWM5 pin.
+                              // The generated pwm2A' signal is passed to the MnPWM4 pin.
 }
 
 // Interupt Service Routine (ISR) for the ADC1 module
