@@ -9,9 +9,9 @@
 //#include <stdbool.h>
 
 //#include "ez123G.h"     // ezTivaLIB
-uint16_t cmpN90 = 4750/* 4875*/; // CMP value for 0 degree
+uint16_t cmpN90 = 4875/* 4750 4875*/; // CMP value for 0 degree
 uint16_t cmp0 = 4625;   // CMP value for 0 degree
-uint16_t cmp90 = 4500 /* 4375*/;  // CMP value for 180 degree
+uint16_t cmp90 = 4375 /* 4500 4375*/;  // CMP value for 180 degree
 uint16_t cmp1, cmp2, cmp;
 int count = 0;
 
@@ -22,6 +22,13 @@ void sway(void);
 void cheeta (void);
 void leftRight(void);
 void turtle(void);
+void Stop(void);
+void sayHi(void);
+void sayHi1(void);
+void sayHi2(void);
+void sayHi3(void);
+void Hola(void);
+
 
 int main()
 {
@@ -31,36 +38,115 @@ int main()
     Setup_GPIO();
 
     cmp = cmp0;
-    PWM1_2_CMPA = cmp0;
-    PWM1_2_CMPB = cmp0;
-    PWM1_3_CMPA = cmp0;
-    PWM1_3_CMPB = cmp0;
-    for (int j = 0; j < 16000000; j++)
-    {
-    }
-    PWM1_2_CMPA = cmp90;
-    for (int j = 0; j < 1000000; j++)
-    {
-    }
-    PWM1_2_CMPA = cmp0;
-    for (int j = 0; j < 1000000; j++)
-    {
-    }
-    PWM1_2_CMPA = cmp90;
-    for (int j = 0; j < 1000000; j++)
-    {
-    }
-    PWM1_2_CMPA = cmp0;
-    for (int j = 0; j < 1000000; j++)
-    {
-    }
+    Stop();
+    Hola();
     // update PWM CMP register value in range of cmp90 ~ cmpN90
     while (1)
     {
 //      turtle();
         cheeta();
+//      sway();
+//      leftRight();
       
     }
+}
+void Hola(void)
+{
+    sayHi();
+   sayHi1(); 
+   sayHi2();
+   sayHi3();
+}
+
+
+void sayHi(void) 
+{
+   for (int j = 0; j < 16000000; j++)
+    {
+    }
+    PWM1_2_CMPA = cmp90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_2_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_2_CMPA = cmp90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_2_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+}
+
+void sayHi1(void) 
+{
+    PWM1_2_CMPB = cmpN90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_2_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_2_CMPB = cmpN90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_2_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+}
+
+void sayHi2(void) 
+{
+    PWM1_3_CMPA = cmpN90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_3_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_3_CMPA = cmpN90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_3_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+}
+
+void sayHi3(void) 
+{
+    PWM1_3_CMPB = cmp90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_3_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_3_CMPB = cmp90;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+    PWM1_3_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++)
+    {
+    }
+}
+void Stop(void)
+{
+    PWM1_2_CMPA = cmp0;
+    PWM1_2_CMPB = cmp0;
+    PWM1_3_CMPA = cmp0;
+    PWM1_3_CMPB = cmp0;
 }
  
 void turtle(void)
@@ -96,20 +182,23 @@ void cheeta (void)
     {
     }
     
-    PWM1_3_CMPA = cmpN90;
-    PWM1_3_CMPB = cmp90;
-    for (int j = 0; j < 2000000 /*800000*/; j++) //~50ms wait
-    {
-    }
-    
-    PWM1_2_CMPA = cmpN90;
-    PWM1_2_CMPB = cmp90;
-    for (int j = 0; j < 2000000 /*800000*/; j++) //~50ms wait
-    {
-    }
     
     PWM1_3_CMPA = cmp90;
     PWM1_3_CMPB = cmpN90;
+    
+
+    for (int j = 0; j < 2000000 /*800000*/; j++) //~50ms wait
+    {
+    }
+    
+    PWM1_2_CMPA = cmp0;
+    PWM1_2_CMPB = cmp0;
+    for (int j = 0; j < 2000000 /*800000*/; j++) //~50ms wait
+    {
+    }
+    
+    PWM1_3_CMPA = cmp0;
+    PWM1_3_CMPB = cmp0;
     for (int j = 0; j < 2000000 /*800000*/; j++) //~50ms wait
     {
     }
@@ -117,6 +206,8 @@ void cheeta (void)
 
 void sway(void)
 {
+    cmpN90 = 4750; // CMP value for 0 degree
+    cmp90 = 4500;  // CMP value for 180 degree
     PWM1_2_CMPA = cmp90;
     PWM1_3_CMPB = cmp90;
 
