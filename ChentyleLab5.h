@@ -880,3 +880,95 @@
 // the corresponding pwmA' or pwmB' signal is passed through to the output stage. When bits are clear, the pwmA' or pwmB' signal is replaced by a zero value which is also passed to the output stage. The PWMINVERT register controls the output stage, so if the corresponding bit is set in that register, 
 // the value seen on the MnPWMn signal is inverted from what is configured by the bits in this register. Updates to the bits in this register can be immediate or locally or globally synchronized to the next synchronous update as controlled by the ENUPDn fields in the PWMENUPD register.
 #define PWM_ENABLE (*((unsigned long *)0x40028008))
+
+
+
+
+
+
+/**********************************************************
+ * EJEMPLO 6.1
+ * Programa que aumenta y disminiye el duty cycle
+ * de un pwm a 1KHZ por el pin PF3 usando el modulo PWM1 con el generador 3B
+ * y haciendo la comparacion con el comparador A
+
+ * by Miguel Lozano (A.K.A. BLAM)                                                *
+ **********************************************************
+*/
+#include "tm4c123gh6pm.h"
+#include "stdint.h"
+#include <stdio.h>
+void delayms(int x);
+
+int main(void)
+{
+
+
+    SYSCTL_RCGCPWM_R |= (1<<1);  /* habilitamos el clock para el modulo PWM1 (bit R1 de RCGCPWM) */
+
+    SYSCTL_RCGCGPIO_R |= (1<<5);   /* habilitamos el clock del puerto F () */
+
+    SYSCTL_RCC_R &= ~(1<<20); /* sin pre escalador para el clock del pwm (bit 20 USEPWMDIV de RCC */
+
+    /* habilitamos la funcion alternativa para PF3 (M1PWM7) */
+    GPIO_PORTF_AFSEL_R = (1<<3);           /* habilitamos funcion alternativa para PF3 */
+    GPIO_PORTF_PCTL_R =(GPIO_PORTF_PCTL_R&~0x0000F000)| 0x00005000 ;      /* valor para usar el pin PF3 como M1PWM7 */
+
+    GPIO_PORTF_DEN_R |= (1<<3);  /* habilitamos pin PF3 como pin digital */
+
+    PWM1_3_CTL_R&=~(1<<0);       /* deshabilitamos el conteo (bit 0 de PWM1CTL) */
+
+
+    PWM1_3_GENB_R = 0x0000008C;  /* configuramos para generar la señal PWM con el generador 3 salida B y usando el comparador A*/
+                                 /* Teniendo un contador descedente, cuando el contador llegue a un valor igual */
+                                 /* al valor del comparador A, la señal pwm se pondrá en LOW (bits D3D2 del registro PWM1GENB 11=0x3) */
+
+                                 /* luego cuando el valor del contador llegue a 0,la señal PWM se pondra en HIGH (bits D3D2 de PWM1GENB 10=0x2)*/
+                                 /* con esto el valor de PWM1GENB es 0x8C*/
+
+  //PWM1_INVERT_R |=(1<<6);
+
+    PWM1_3_LOAD_R = 16000;       /* valor tope para Fpwm = 1KHZ-> valor_tope=(16000000Hz/1000)=16000  */
+    PWM1_3_CMPA_R = 8000;        /* iniciamos con el valor minimo dt =50 */
+    PWM1_3_CTL_R  = 1;           /* activamos el contador del modulo PWM1 */
+    PWM1_ENABLE_R = (1<<7);      /* activamos la salida pwm7pin (que corresponde a PF3) del Modulo PWM1 */
+
+    // hacemos un retardo para que un inicio nos muestre la señal con DC=50%
+    delayms(5000);
+    delayms(5000);
+    delayms(5000);
+    // luego hacemos un efecto fadding disminuyendo y aumentando el DT progresivamente
+
+    int x;
+    while(1)
+
+    {
+        for(x=15900;x>=100;x-=100)
+            {
+                  PWM1_3_CMPA_R = x;
+                  delayms(20);
+            }
+
+         delayms(50);
+
+        for(x=100;x<=15900;x+=100)
+            {
+                PWM1_3_CMPA_R = x;
+                delayms(20);
+            }
+
+        delayms(50);
+
+   }
+}
+
+
+void delayms(int x)
+{
+    int a, b;
+    for( a= 0 ; a < x; a++)
+        for(b = 0; b < 3180; b++)
+            {}
+}
+
+
