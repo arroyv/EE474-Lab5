@@ -918,153 +918,6 @@ void LCD_DrawFilledCircle(unsigned short x0, unsigned short y0, unsigned short r
     }
 }
 
-// ************** LCD_DrawImage ***************************
-// - Draws an image from memory
-// - Image format is a plain byte array (no metadata)
-// - User must specify:
-//   - pointer to image data
-//   - x, y location to draw image
-//   - width and height of image
-//   - bpp (bits per pixel) of image
-//     - currently supports 4 and 8 bpp image data
-// ********************************************************
-void LCD_DrawImage(const unsigned char imgPtr[], unsigned short x, unsigned short y, unsigned short width, unsigned short height, unsigned char bpp)
-{
-    short i, j, pixelCount;
-
-    pixelCount = 0;
-
-    for (i = 0; i < height; i++)
-    {
-        // Set the X address of the display cursor.
-        LCD_WriteCommand(SSD2119_X_RAM_ADDR_REG);
-        LCD_WriteData(x);
-
-        // Set the Y address of the display cursor.
-        LCD_WriteCommand(SSD2119_Y_RAM_ADDR_REG);
-        LCD_WriteData(y + i);
-
-        LCD_WriteCommand(SSD2119_RAM_DATA_REG);
-
-        switch (bpp)
-        {
-        case 4:
-        {
-            for (j = 0; j < width / 2; j++)
-            {
-                unsigned char pixelData = imgPtr[pixelCount];
-                LCD_WriteData(CONVERT4BPP((pixelData & 0xF0) >> 4));
-                LCD_WriteData(CONVERT4BPP(pixelData & 0x0F));
-                pixelCount++;
-            }
-        }
-        break;
-        case 8:
-        {
-            for (j = 0; j < width; j++)
-            {
-                char pixelData = *imgPtr + (i * j) + j;
-                LCD_WriteData(CONVERT8BPP(j));
-                LCD_WriteData(CONVERT8BPP(pixelData & 0x0F));
-            }
-        }
-        };
-    }
-}
-
-// ************** LCD_DrawBMP *****************************
-// - Draws an image from memory
-// - Image format is a BMP image stored in a byte array
-// - Function attempts to resolve the following metadata
-//   from the BMP format
-//   - width
-//   - height
-//   - bpp
-//   - location of image data within bmp data
-// - User must specify:
-//   - pointer to image data
-//   - x, y location to draw image
-// ********************************************************
-void LCD_DrawBMP(const unsigned char *imgPtr, unsigned short x, unsigned short y)
-{
-    short i, j, bpp;
-    long width, height, dataOffset;
-    const unsigned char *pixelOffset;
-
-    // read BMP metadata
-    width = *(imgPtr + BMP_WIDTH_OFFSET);
-    height = *(imgPtr + BMP_HEIGHT_OFFSET);
-    bpp = *(imgPtr + BMP_BPP_OFFSET);
-    dataOffset = *(imgPtr + BMP_DATA_OFFSET);
-
-    // debug info
-    //    printf("height: %d, width: %d, bpp %d", height, width, bpp);
-
-    // setup pixel pointer
-    pixelOffset = imgPtr + dataOffset;
-
-    for (i = 0; i < height; i++)
-    {
-        // Set the X address of the display cursor.
-        LCD_WriteCommand(SSD2119_X_RAM_ADDR_REG);
-        LCD_WriteData(x);
-
-        // Set the Y address of the display cursor.
-        LCD_WriteCommand(SSD2119_Y_RAM_ADDR_REG);
-        LCD_WriteData(y + height - i);
-
-        LCD_WriteCommand(SSD2119_RAM_DATA_REG);
-
-        switch (bpp)
-        {
-        case 1:
-        { // unknown if working yet
-            for (j = 0; j < width / 8; j++)
-            {
-                unsigned char pixelData = *(pixelOffset);
-                LCD_WriteData((pixelData & 0x80) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x40) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x20) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x10) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x08) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x04) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x02) * 0xFFFF);
-                LCD_WriteData((pixelData & 0x01) * 0xFFFF);
-                pixelOffset++;
-            }
-            break;
-        }
-        case 4:
-        { // working?
-            for (j = 0; j < width / 2; j++)
-            {
-                unsigned char pixelData = *(pixelOffset);
-                //                    LCD_WriteData( CONVERT4BPP((pixelData&0xF0)>>4) );
-                //                    LCD_WriteData( CONVERT4BPP(pixelData&0x0F) );
-                LCD_WriteData(Color4[(pixelData & 0xF0) >> 4]);
-                LCD_WriteData(Color4[pixelData & 0x0F]);
-                pixelOffset++;
-            }
-            break;
-        }
-        case 24:
-        { // seems to work
-            for (j = 0; j < width; j++)
-            {
-                // read 24bit RGB value into pixelData
-                unsigned long pixelData = *(pixelOffset) | *(pixelOffset + 1) << 8 | *(pixelOffset + 2) << 16;
-
-                // write RGB value to screen (passed through conversion macro)
-                LCD_WriteData(CONVERT24BPP(pixelData));
-
-                // increment pixel data pointer to next 24bit value
-                pixelOffset += 3;
-            }
-        }
-        }
-    }
-}
-
 #define TOUCH_YN (*((volatile unsigned long *)0x40004010)) // PA2
 #define TOUCH_XP (*((volatile unsigned long *)0x40004020)) // PA3
 #define TOUCH_XN (*((volatile unsigned long *)0x40024040)) // PE4 / AIN9
@@ -1506,74 +1359,128 @@ long Touch_GetCoords(void)
     return result;
 }
 
-float temperature;
 int integer;
 int decimal;
 unsigned long counter;
 unsigned long buttonCount;
-enum colors{red, yellow, green};
-enum colors LEDcolor = red; // default LEDcolor is red
-int pPress;
-int sPress;
+enum movement{sfrog, stwist, sdisco, ssway, sneutral};
+enum movement movementState = sneutral; // default movementState is neutral
+int frogP;
+int twistP;
+int discoP;
+int swayP; 
+
+// Set up servos
+#define d90  4875 // CMP value for 90 degree
+#define nd90 4375 // CMP value for -90 degree
+#define d80  4750 // CMP value for 80 degree
+#define nd80 4500 // CMP value for -80 degree
+#define d0   4625 // CMP value for 0 degree
+uint16_t cmpN90 = nd80; 
+uint16_t cmp0   = d0;   
+uint16_t cmp90  = d80;
+uint16_t cmp1, cmp2, cmp;
+int count = 0;
 
 void Timer0_Init(volatile unsigned long);
 void ADC1_Init(void);
-void PWM_Init(void);
 void ADC1_Handler(void);
 void printFloat(float value);
-enum colors systemSwitch(enum colors color);
-int pedestrianPress(void);
-int stopPress(void);
+//enum movement systemSwitch(enum colors color);
+int frogPress(void);
+int twistPress(void);
+int discoPress(void);
+int swayPress(void);
+void Setup_PWM(void);
+void Setup_GPIO(void);
+void sway(void);
+void disco (void);
+void twist(void);
+void frog(void);
+void Stop(void);
+void sayHi(void);
+void sayHi1(void);
+void sayHi2(void);
+void sayHi3(void);
+void Hola(void);
+void neutralScreen(void);
+void stopScreen(void);
 
 int main() {
-//   Timer0_Init(16000000);
-//   Touch_Init();
-//   LCD_Init();
-//   ADC1_Init();
-  PWM_Init();
-  
-  // set background
-  LCD_ColorFill(Color4[3]);
+  Timer0_Init(16000000);
+  Touch_Init();
+  LCD_Init();
+  Setup_PWM();
+  Setup_GPIO();
   
   // sets up LCD push buttons on screen
   invisible = 0;
-  LCD_DrawFilledRect(20, 150, 70, 70, Color4[2]);
-  LCD_SetCursor(25, 180);
-  LCD_PrintString("Left"); 
-
-  LCD_DrawFilledRect(230, 150, 70, 70, Color4[2]);
-  LCD_SetCursor(255, 180);
-  LCD_PrintString("Right");  
+  neutralScreen(); 
   
   // Set text cursor to top left of screen
   LCD_SetCursor(0, 0);
   counter = 0;
-  buttonCount = 0;
+  
+  // Set up servo
+  cmp = cmp0;
+  PWM1_2_CMPA = cmp0;
+  PWM1_2_CMPB = cmp0;
+  PWM1_3_CMPA = cmp0;
+  PWM1_3_CMPB = cmp0;
+  
+  Hola();
+  movementState = sneutral;
   
   while (1) {
     Touch_ReadX();
     Touch_ReadY();
-    //LCD_PrintInteger(Touch_XVal); LCD_PrintChar(','); LCD_PrintInteger(Touch_YVal); LCD_PrintString("\n\r");
-    LCD_PrintInteger(buttonCount);
+    frogP  = frogPress();
+    twistP = twistPress();
+    discoP = discoPress();
+    swayP  = swayPress(); 
+    
     LCD_SetCursor(0, 0);
-    //LCD_ColorFill(Color4[0]); // clears the screen
+    //LCD_PrintInteger(movementState);
+    //LCD_PrintInteger(Touch_XVal); LCD_PrintChar(','); LCD_PrintInteger(Touch_YVal); LCD_PrintString("\n\r");
+    // LCD_ColorFill(Color4[0]); // clears the screen
     
-//    pPress = pedestrianPress();
-//    sPress = stopPress();
-//    if(pPress || sPress) {
-//      buttonCount++;
-//      if((600 < buttonCount) && (buttonCount < 1500)) {
-//        if(pPress == 1) {
-//          // something
-//        }
-//        if(sPress == 1) {
-//          // something else
-//        }
-//      }
-//    } else {
-//      buttonCount = 0;
-//    }
+    if(!(((2630 >= Touch_XVal) && (Touch_XVal >= 2600)) && ((1720 >= Touch_YVal) && (Touch_YVal >= 1700)))) {
+      if(movementState == sneutral) {
+        if(frogP == 1) {
+          movementState = sfrog;
+        } else if(discoP == 1) {
+          movementState = sdisco;
+        } else if(twistP == 1) {
+          movementState = stwist;
+        } else if(swayP == 1) {
+          movementState = ssway;
+        }
+      } else {
+        if((frogP == 1) || (discoP == 1) || (twistP == 1) || (swayP == 1)) {
+          neutralScreen();
+          movementState = sneutral;
+        }
+      }
+    }
     
+    if(movementState == sneutral) {
+      neutralScreen();
+      LCD_SetCursor(0, 0);
+      LCD_PrintInteger(movementState);
+      Stop();
+    } else if(movementState == sfrog) {
+      stopScreen();
+      frog();
+    } else if(movementState == stwist) {
+      stopScreen();
+      twist();
+    } else if(movementState == ssway) {
+      stopScreen();
+      sway();
+    } else if(movementState == sdisco) {
+      stopScreen();
+      disco();
+    } 
   }
   return 1;
 }
@@ -1591,94 +1498,6 @@ void Timer0_Init(volatile unsigned long count) {
     GPTMCTL_TIMER0   |= 0x1;   // Timer A is enabled and begins counting or the capture logic is enabled based on the GPTMCFG register.
 }
 
-// This function configures the ADC module
-// more detail in section 13.4 of datasheet
-void ADC1_Init(void) {
-    RCGCADC         |= 1u << 1;    // Enable and provide a clock to ADC module 1 in Run mode.
-    ADC_1_ACTSS     &= ~(1u << 3); // disables Sample Sequencer 3
-    ADC_1_EMUX      |= 0x5000;     // The trigger is initiated by Timer.
-    ADC_1_SSMUX3     = 0x0;        // 1st Sample Input Select //? still not sure what this should be set to sice im taking values from the temp sensor and was i suppost to config the GPIO
-    ADC_1_SSCTL3    |= 0xE;        // The temperature sensor is read during the first sample of the sample sequence.This bit must be set before initiating a single sample sequence.
-    inter_32_63_EN1 |= (1u << 19); // ADC1  SS3 is interrupt number 17, corresponding to vector number 33
-    ADC_1_IM        |= 0x8;        // ADC interupt mask
-    ADC_1_ACTSS     |= (1u << 3);  // Sample Sequencer 3 is enabled.
-    ADC_1_PSSI      |= 1u << 3;    // Begin sampling on Sample Sequencer 3, if the sequencer is enabled in the ADCACTSS register.
-}
-
-void PWM_GPIO_SETUP (void)
-{
-    RCGC2_PA        |= 0x20; // Enable the clock to GPIO F
-    GPIO_PORT_F_DEN = 0x1F;        // The digital functions for the corresponding pin are enabled PF4, PF3, PF2, PF1, PF0
-    GPIO_PORT_F_DIR = 0xF;         // set PF1, PF2, PF3 as output which is connected to the red, blue, green LED respectively. Other pins are inputs by default
-    GPIOF_AFSEL     |= 0x0F; // Enable alternate function
-    GPIOF_PCTL      |= 0x5555; // Assign PWM signal to port F0-F3
-
-// if problem refer to this set up from previous lab specifically maybe the GPIO_PORT_F_LOCK
-    // RCGCGPIO = 0x20;               // Enable and provide a clock to GPIO Port F in Run mode
-    // GPIO_PORT_F_DEN = 0x1F;        // The digital functions for the corresponding pin are enabled PF4, PF3, PF2, PF1, PF0
-    // GPIO_PORT_F_DIR = RGB;         // set PF1, PF2, PF3 as output which is connected to the red, blue, green LED respectively. Other pins are inputs by default
-    // GPIO_PORT_F_LOCK = 0x4C4F434B; // The GPIOCR register is unlocked and may be modified
-    //         // unlocked using the GPIOLOCK register Writing 0x4C4F434B to the GPIOLOCK register unlocks the GPIOCR register.
-    // GPIO_PORT_F_CR = 0xFF;         // GPIOCR register must be configured
-
-}
-
-// This function configures the PWM module
-// more info can be found on page 1239 of the datasheet
-void PWM_Init(void) {
-
-    RCGC0_PA        |= (1u << 20); // Enable the PWM clock
-    
-    RCC             |= (0x7 << 17); // Configure to use PWM /64 divider (default)
-    RCC             |= (1u << 20); //Enable PWM Clock Divisor
-    
-    PWM1_2_CTL         = 0x0;    //&= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
-    PWM1_2_GENA       |= 0x000C;          //  Action for Counter=LOAD  This field specifies the action to be taken when the counter matches the value in the PWMnLOAD register. is 0x3 Drive pwmA High.
-    PWM1_2_GENA       |= 0x0080;          //  Action for Comparator A Down This field specifies the action to be taken when the counter matches comparator A while counting down. is Drive pwmA Low.
-
-    PWM1_2_GENB       |= 0x000C;        // Action for Counter=LOAD
-                                        // This field specifies the action to be taken when the counter matches the
-                                        // load value. Drive pwmB High.
-    PWM1_2_GENB       |= 0x0800;        // Action for Comparator B Down
-                                        // This field specifies the action to be taken when the counter matches
-                                        // comparator B while counting down. Drive pwmB Low.
-
-    PWM1_2_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
-    PWM1_2_CMPA       |= 0x130B; // Set pulse width of PWM0 for a 2.5% duty cycle 
-    PWM1_2_CMPB       |= 0x1117; // Set pulse width of PWM1 for a 12.5% duty cycle 
-    PWM1_2_CTL        |= 0x01; // Start timers in PWM generator 
-    
-    PWM1_3_CTL        = 0x0; //&= ~(0x1); // Configure PWM generator to countdown mode with immediate updates to the parameters
-    PWM1_3_GENA       |= 0x008C;
-    PWM1_3_GENB       |= 0x080C;
-    PWM1_3_LOAD       |= 0x1387; // 16MHz clock / 64 / 50Hz = 5000 clock ticks per period (0x1388) but if in Count-Down mode subtract one
-    
-    PWM1_3_CMPA       |= 0x130B; // Set pulse width of PWM0 for a 2.5% duty cycle 
-    
-    PWM1_3_CMPB       |= 0x1117; // Set pulse width of PWM1 for a 12.5% duty cycle 
-    
-    PWM1_3_CTL        |= 0x01; // Start timers in PWM generator 0
-    
-    PWM1_ENABLE      |= 0xF0; // Enable PWM outputs 
-                              // The generated pwm3B' signal is passed to the MnPWM7 pin
-                              // The generated pwm3A' signal is passed to the MnPWM6 pin. 
-                              // The generated pwm2B' signal is passed to the MnPWM5 pin.
-                              // The generated pwm2A' signal is passed to the MnPWM4 pin.
-}
-
-// Interupt Service Routine (ISR) for the ADC1 module
-// Here the ADC conversion value read
-// The internal temperature of the sensor is calculated
-// The ADC1 interupt flag is cleared after each conversion
-void ADC1_Handler(void) {
-    temperature = 147.5 - (247.5 * (ADC_1_SSFIFO3 & 0xFFF) / 4096.0); // the first 12 bit are filtered thats the resolution of the sample
-    // printFloat(temperature);
-    
-    // increment counter
-    counter++;
-    ADC_1_ISC |= (1u << 3); // clear ADC interupt
-}
-
 // Print floater type
 void printFloat(float value) {
     integer = (int)(value*100.0);
@@ -1689,38 +1508,257 @@ void printFloat(float value) {
     LCD_PrintString("\n\r");
 }
 
-// Turns on the LED color associated to the state, if in state "start" the 
-// LED's alternate between green and red. In the "not start" state only the
-// LED currently lit stays on. Also allows for "pedestrian" feedback to add
-// a yellow LED on state between the green and red in the "start" state.
-enum colors systemSwitch(enum colors color) {
-  LCD_DrawFilledRect(110, 20, 100, 200, Color4[8]);
-  if(color == red) {
-    LCD_DrawFilledCircle(160, 60, 20, Color4[12]);
-    return green;
-  } else if(color == yellow) {
-    LCD_DrawFilledCircle(160, 120, 20, Color4[14]);
-    return red;
-  } else { // green
-    LCD_DrawFilledCircle(160, 180, 20, Color4[10]);
-    return red;
-  }
-}
-
-// Check to see if the pedestrian button has been clicked
-int pedestrianPress(void) {
-  if((3200 >= Touch_XVal) && (Touch_XVal >= 2660) && (1800 >= Touch_YVal) && (Touch_YVal >= 1400)) {
+// Check to see if the turtle button has been clicked
+int frogPress(void) {
+  if((3250 >= Touch_XVal) && (Touch_XVal >= 2500) && (2850 >= Touch_YVal) && (Touch_YVal >= 2200)) {
     return 1;
   } else {
     return 0;
   }
 }
 
-// Check to see if the stop button has been clicked
-int stopPress(void) {
-  if((1800 >= Touch_XVal) && (Touch_XVal >= 1300) && (1800 >= Touch_YVal) && (Touch_YVal >= 1400)) {
+// Check to see if the march button has been clicked
+int twistPress(void) {
+  if((1900 >= Touch_XVal) && (Touch_XVal >= 1200) && (2850 >= Touch_YVal) && (Touch_YVal >= 2300)) {
     return 1;
   } else {
     return 0;
   }
 }
+
+// Check to see if the cheetah button has been clicked
+int discoPress(void) {
+  if((3250 >= Touch_XVal) && (Touch_XVal >= 2600) && (1675 >= Touch_YVal) && (Touch_YVal >= 1360)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+// Check to see if the sway button has been clicked
+int swayPress(void) {
+  if((2000 >= Touch_XVal) && (Touch_XVal >= 1200) && (1900 >= Touch_YVal) && (Touch_YVal >= 1375)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+ 
+void frog(void) {
+    PWM1_3_CMPA = cmpN90; // yellow
+    PWM1_3_CMPB = cmp90;  // purple
+    PWM1_2_CMPB = cmp90;  // blue
+    PWM1_2_CMPA = cmpN90; // green
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+    PWM1_3_CMPA = cmp90; // yellow
+    PWM1_3_CMPB = cmpN90; // purple
+    for (int j = 0; j < 500000 /*800000*/; j++) {} // shorter wait
+    PWM1_2_CMPB = cmp0; // blue
+    PWM1_2_CMPA = cmp0; // green
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+}
+
+void disco (void) {
+    cmpN90 = 4750/* 4875*/; // CMP value for 0 degree
+    cmp90 = 4500 /* 4375*/;  // CMP value for 180 degree
+    PWM1_2_CMPA = cmpN90; //green
+    PWM1_3_CMPA = cmp90; // yellow
+    PWM1_2_CMPB = cmpN90; // blue
+    PWM1_3_CMPB = cmp90; // purple
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+    PWM1_2_CMPA = cmp90; //green
+    PWM1_3_CMPA = cmpN90; // yellow
+    PWM1_2_CMPB = cmp90; // blue
+    PWM1_3_CMPB = cmpN90; // purple
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+}
+
+void sway(void) {
+    PWM1_2_CMPA = cmp90;
+    PWM1_3_CMPB = cmp90;
+    PWM1_3_CMPA = cmpN90;
+    PWM1_2_CMPB = cmpN90;
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+    PWM1_2_CMPA = cmpN90;
+    PWM1_3_CMPB = cmpN90;
+    PWM1_3_CMPA = cmp90;
+    PWM1_2_CMPB = cmp90;
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+}
+
+void twist(void) {
+    PWM1_2_CMPA = cmp90;
+    PWM1_3_CMPB = cmp90;
+    PWM1_3_CMPA = cmp90;
+    PWM1_2_CMPB = cmp90;
+
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+    PWM1_2_CMPA = cmpN90;
+    PWM1_3_CMPB = cmpN90;
+    PWM1_3_CMPA = cmpN90;
+    PWM1_2_CMPB = cmpN90;
+    for (int j = 0; j < 2000000 /*800000*/; j++) {} //~50ms wait
+}
+//------------------------------------------------------------------------------
+void Setup_PWM(void) {
+    // GPIO for PWM: PF0
+    // M1PWM4 - PWM Module 1, generator 2, PWM4
+    // SysClk = 16000000 Hz, PWMDIV = /64, Freq for PWMTimer = 250000 Hz
+    // PWM frequency = 50 Hz
+    // LOAD = 5000
+    // CMP = 4625
+
+    // 1. Enable Clock for PWM Modules
+    RCGCPWM |= (1u << 1);
+    while ((PRPWM & (0x2)) != (0x2)) {};
+    // 2. Enable and Setup Clock Divider for PWM Timer
+    RCC |= (1 << 20);    // RCC[20]=1:USEPWMDIV
+    RCC &= ~(0x7 << 17); // RCC[19:17]=000 PWMDIV
+    RCC |= (0x7 << 17);  // RCC[19:17] PWMDIV value
+    // 3. Disable PWM Generator and Setup the Timer Counting Mode
+    PWM1_2_CTL = 0x00; // Disable PWM Generator, and set to count-down mode
+    PWM1_3_CTL = 0x00; // Disable PWM Generator, and set to count-down mode
+
+    // 4. Configure LOAD (Period), CMP (Duty), GEN (PWM Mode) values
+    PWM1_2_LOAD = 4999; // Setup the period of the PWM signal
+    PWM1_3_LOAD = 4999; // Setup the period of the PWM signal
+
+    PWM1_2_CMPA = 4625; // Setup the initial duty cycle
+    PWM1_2_CMPB = 4625; // Setup the initial duty cycle
+
+    PWM1_3_CMPA = 4625; // Setup the initial duty cycle
+    PWM1_3_CMPB = 4625; // Setup the initial duty cycle
+
+    PWM1_2_GENA = (0x3 << 2) | (0x2 << 6);  // generate Left-Aligned PWM
+    PWM1_2_GENB = (0x3 << 2) | (0x2 << 10); // generate Left-Aligned PWM // TODO double check register config
+
+    PWM1_3_GENA = (0x3 << 2) | (0x2 << 6);  // generate Left-Aligned PWM
+    PWM1_3_GENB = (0x3 << 2) | (0x2 << 10); // generate Left-Aligned PWM // TODO double check register config
+
+    // 5. Enable PWM Generator
+    PWM1_2_CTL |= 0x1;
+    PWM1_3_CTL |= 0x1;
+
+    // 6. Enable PWM Output
+    PWM1_ENABLE = 0xF0; // 0x30;     // Enable PWMx
+                        // The generated pwm3B' signal is passed to the MnPWM7 pin
+                        // The generated pwm3A' signal is passed to the MnPWM6 pin.
+                        // The generated pwm2B' signal is passed to the MnPWM5 pin.
+                        // The generated pwm2A' signal is passed to the MnPWM4 pin.
+}
+void Setup_GPIO(void) {
+    // GPIO Initialization and Configuration
+    // 1. Enable Clock to the GPIO Modules (SYSCTL->RCGCGPIO)
+    RCGCGPIO |= (0x20);
+    // allow time for clock to stabilize (SYSCTL->PRGPIO)
+    while ((PRGPIO & (0x20)) != (0x20)) {};
+
+    // 2. Unlock GPIO only PD7, PF0 on TM4C123G; PD7, PE7 on TM4C1294 (GPIO->LOCK and GPIO->CR)
+    GPIO_PORT_F_LOCK = 0x4C4F434B; // The GPIOCR register is unlocked and may be modified
+    GPIO_PORT_F_CR = 0x1;          // GPIOCR register must be configured
+
+    // 3. Set Analog Mode Select bits for each Port (GPIO->AMSEL 0=digital, 1=analog)
+    // GPIO_PORT_F_AMSEL //? non needded worked without
+    // 4. Set Port Control Register for each Port (GPIO->PCTL, check the PCTL table)
+    GPIOF_PCTL = 0x5555;
+    // 5. Set Alternate Function Select bits for each Port (GPIO->AFSEL 0=regular I/O, 1=PCTL peripheral)
+    GPIOF_AFSEL |= 0xF; // Enable alternate function
+
+    // 6. Set Output pins for each Port (Direction of the Pins: GPIO->DIR 0=input, 1=output)
+    GPIO_PORT_F_DIR |= 0xF; // set PF0 as output
+
+    // 7. Set PUR bits for internal pull-up, PDR for pull-down reg, ODR for open drain (0: disable, 1=enable)
+    // GPIO_PORT_F_PDR
+    // 8. Set Digital ENable register on all GPIO pins (GPIO->DEN 0=disable, 1=enable)
+    GPIO_PORT_F_DEN = 0xF;
+}
+
+void Stop(void) {
+    PWM1_2_CMPA = cmp0;
+    PWM1_2_CMPB = cmp0;
+    PWM1_3_CMPA = cmp0;
+    PWM1_3_CMPB = cmp0;
+}
+
+void Hola(void) {
+   sayHi();
+   sayHi1(); 
+   sayHi2();
+   sayHi3();
+}
+
+void sayHi(void) {
+    for (int j = 0; j < 400000; j++) {}
+    PWM1_2_CMPA = cmpN90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_2_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_2_CMPA = cmpN90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_2_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+}
+
+void sayHi1(void) {
+   PWM1_2_CMPB = cmp90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_2_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_2_CMPB = cmp90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_2_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+}
+
+void sayHi2(void) {
+    PWM1_3_CMPA = cmpN90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_3_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_3_CMPA = cmpN90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_3_CMPA = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+}
+
+void sayHi3(void) {
+    PWM1_3_CMPB = cmp90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_3_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_3_CMPB = cmp90;
+    for (int j = 0; j < 1000000; j++) {}
+    PWM1_3_CMPB = cmp0;
+    for (int j = 0; j < 1000000; j++) {}
+}
+
+// Draw neutral screen
+void neutralScreen(void) {
+  LCD_SetCursor(0, 0);
+  LCD_PrintInteger(movementState);
+  LCD_DrawFilledRect(0, 0, 160, 120, Color4[2]);
+  LCD_SetCursor(60, 60);
+  LCD_PrintString("Frog"); 
+  LCD_DrawFilledRect(160, 0, 160, 120, Color4[4]);
+  LCD_SetCursor(230, 60);
+  LCD_PrintString("Twist"); 
+  LCD_DrawFilledRect(0, 120, 160, 120, Color4[14]);
+  LCD_SetCursor(60, 180);
+  LCD_PrintString("Disco"); 
+  LCD_DrawFilledRect(160, 120, 160, 120, Color4[11]);
+  LCD_SetCursor(230, 180);
+  LCD_PrintString("Sway");
+}
+
+// Draw Stop screen
+void stopScreen(void) {
+  // set background
+  LCD_SetCursor(0, 0);
+  LCD_PrintInteger(movementState);
+  LCD_ColorFill(Color4[12]);
+  LCD_SetCursor(145, 120);
+  LCD_PrintString("Stop");
+  LCD_SetCursor(0, 0);
+  LCD_PrintInteger(movementState);
+}
+
